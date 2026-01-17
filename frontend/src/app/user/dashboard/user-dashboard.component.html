@@ -1,0 +1,8 @@
+@for (u of units; track u.id) {
+  <div class="card">
+    <h3 class="font-semibold">Tower {{ u.tower }}</h3>
+    <p>Unit {{ u.unit_number }}</p>
+    <p>₹{{ u.rent }}</p>
+    <button class="btn mt-2">Book</button>
+  </div>
+}
