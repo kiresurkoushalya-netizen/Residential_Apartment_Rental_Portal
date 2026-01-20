@@ -68,8 +68,6 @@ def register():
         return jsonify({"message": "Invalid role. Allowed: tenant, admin"}), 400
 
     # ✅ SECURITY: don't allow admin register in public API
-    if role == "admin":
-        return jsonify({"message": "Admin registration not allowed"}), 403
 
     if User.query.filter_by(email=email).first():
         return jsonify({"message": "Email already exists"}), 409

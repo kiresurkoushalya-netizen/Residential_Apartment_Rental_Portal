@@ -1,0 +1,16 @@
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" *ngIf="occupancy">
+  <div class="bg-white shadow rounded-xl p-4">
+    <p class="text-gray-500 text-sm">Total Units</p>
+    <p class="text-xl font-bold">{{ occupancy.total_units }}</p>
+  </div>
+
+  <div class="bg-white shadow rounded-xl p-4">
+    <p class="text-gray-500 text-sm">Occupied</p>
+    <p class="text-xl font-bold">{{ occupancy.occupied_units }}</p>
+  </div>
+
+  <div class="bg-white shadow rounded-xl p-4">
+    <p class="text-gray-500 text-sm">Available</p>
+    <p class="text-xl font-bold">{{ occupancy.available_units }}</p>
+  </div>
+</div>

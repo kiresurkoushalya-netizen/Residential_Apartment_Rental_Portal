@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from models import db, Amenity, Unit
-from amenity import unit_amenities 
+
 
 amenity_bp = Blueprint("amenity_bp", __name__, url_prefix="/api")
 

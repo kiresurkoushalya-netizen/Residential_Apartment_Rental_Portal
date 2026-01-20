@@ -1,0 +1,76 @@
+<div class="bg-white shadow rounded-2xl p-5 mt-6">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-lg font-semibold text-gray-700">Approve / Decline Bookings</h2>
+
+    <select
+      [(ngModel)]="bookingStatusFilter"
+      (change)="onFilterChange()"
+      class="border rounded-lg px-3 py-2"
+    >
+      <option value="pending">Pending</option>
+      <option value="approved">Approved</option>
+      <option value="declined">Declined</option>
+    </select>
+  </div>
+
+  <p *ngIf="loading" class="text-gray-500">Loading bookings...</p>
+
+  <div *ngIf="!loading && bookings.length === 0" class="text-gray-500">
+    No bookings found.
+  </div>
+
+  <div class="overflow-x-auto" *ngIf="!loading && bookings.length > 0">
+    <table class="w-full text-sm border">
+      <thead class="bg-gray-100 text-gray-700">
+        <tr>
+          <th class="p-2 text-left">Booking ID</th>
+          <th class="p-2 text-left">Unit</th>
+          <th class="p-2 text-left">Tenant</th>
+          <th class="p-2 text-left">Visit Date</th>
+          <th class="p-2 text-left">Status</th>
+          <th class="p-2 text-left">Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngFor="let b of bookings" class="border-t hover:bg-gray-50">
+          <td class="p-2 font-semibold">{{ b.id }}</td>
+          <td class="p-2">{{ b.unit_id }}</td>
+          <td class="p-2">{{ b.tenant_id }}</td>
+          <td class="p-2">{{ b.visit_date }}</td>
+          <td class="p-2">{{ b.status }}</td>
+
+          <td class="p-2">
+            <div *ngIf="b.status === 'pending'" class="flex flex-col gap-2">
+              <div class="flex gap-2">
+                <button
+                  (click)="approve(b.id)"
+                  class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs"
+                >
+                  Approve
+                </button>
+
+                <button
+                  (click)="decline(b.id)"
+                  class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs"
+                >
+                  Decline
+                </button>
+              </div>
+
+              <input
+                [(ngModel)]="declineReason[b.id]"
+                placeholder="Decline reason (optional)"
+                class="border rounded-lg px-2 py-1 text-xs"
+              />
+            </div>
+
+            <span *ngIf="b.status !== 'pending'" class="text-gray-400 text-xs">
+              No action
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

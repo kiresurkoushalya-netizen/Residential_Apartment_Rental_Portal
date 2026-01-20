@@ -1,6 +1,7 @@
-from datetime import datetime
 from app import create_app
-from extensions import db, User, Tower, Unit, Amenity, Booking, TenantUnit, Payment
+from extensions import db
+from models import User, Tower, Unit, Amenity, Booking, TenantUnit, Payment
+from werkzeug.security import generate_password_hash
 
 
 def run_seed():
