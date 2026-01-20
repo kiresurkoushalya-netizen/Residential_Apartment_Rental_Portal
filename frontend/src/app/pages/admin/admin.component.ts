@@ -1,66 +1,302 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-import { AdminHeaderComponent } from './components/admin-header/admin-header.component';
-import { AdminMessagesComponent } from './components/admin-messages/admin-messages.component';
-import { AdminSummaryComponent } from './components/admin-summary/admin-summary.component';
-import { TowerManagerComponent } from './components/tower-manager/tower-manager.component';
-import { UnitManagerComponent } from './components/unit-manager/unit-manager.component';
-import { BookingApprovalComponent } from './components/booking-approval/booking-approval.component';
+import { Router } from '@angular/router';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    AdminHeaderComponent,
-    AdminMessagesComponent,
-    AdminSummaryComponent,
-    TowerManagerComponent,
-    UnitManagerComponent,
-    BookingApprovalComponent
-  ],
+  imports: [CommonModule, FormsModule],
   templateUrl: './admin.component.html',
 })
-export class AdminComponent {
-  // ✅ your existing variables remain
-  successMsg = '';
-  errorMsg = '';
-  loading = false;
+export class AdminComponent implements OnInit {
+  baseUrl = 'http://localhost:5000/api';
 
+  // Common UI
+  loading = false;
+  errorMsg = '';
+  successMsg = '';
+
+  // Dashboard
   occupancy: any = null;
 
-  towers: any[] = [];
-  units: any[] = [];
+  // Bookings
   bookings: any[] = [];
+  bookingStatusFilter: string = 'pending';
+  declineReason: { [key: number]: string } = {};
 
-  towerForm = { name: '', floors: 0 };
+  // Towers
+  towers: any[] = [];
+  towerForm = {
+    name: '',
+    floors: ''
+  };
+
+  // Units
+  units: any[] = [];
   unitForm = {
     tower_id: '',
     unit_no: '',
-    floor: 0,
-    bhk: '1BHK',
-    rent: 0,
-    status: 'available',
+    floor: '',
+    bhk: '2BHK',
+    rent: '',
+    status: 'available'
   };
 
-  bookingStatusFilter = 'pending';
-  declineReason: { [key: number]: string } = {};
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
-  // ✅ your existing functions remain
-  logout() {}
-  addTower() {}
-  addUnit() {}
-  deleteUnit(id: number) {}
-  loadBookings() {}
-  approveBooking(id: number) {}
-  declineBooking(id: number) {}
-
-  // ✅ new helper for standalone booking filter change
-  onBookingFilterChange(status: string) {
-    this.bookingStatusFilter = status;
+  ngOnInit(): void {
+    this.loadDashboard();
+    this.loadTowers();
+    this.loadUnits();
     this.loadBookings();
+  }
+
+  // -------------------------
+  // Helpers
+  // -------------------------
+  clearMsgs() {
+    this.errorMsg = '';
+    this.successMsg = '';
+  }
+
+  private authOptions() {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      this.errorMsg = 'Token missing. Please login again.';
+      this.router.navigate(['/login']);
+      return null;
+    }
+
+    return {
+      headers: new HttpHeaders({
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      }),
+    };
+  }
+
+  logout() {
+    localStorage.clear();
+    this.router.navigate(['/login']);
+  }
+
+  // -------------------------
+  // Dashboard
+  // -------------------------
+  loadDashboard() {
+    const opts = this.authOptions();
+    if (!opts) return;
+
+    this.http.get(`${this.baseUrl}/dashbard/occupancy`, opts).subscribe({
+      next: (res) => {
+        this.occupancy = res;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.errorMsg = 'Failed to load dashboard';
+      },
+    });
+  }
+
+  // -------------------------
+  // Towers
+  // -------------------------
+  loadTowers() {
+    this.http.get<any[]>(`${this.baseUrl}/tower/towers`).subscribe({
+      next: (res) => {
+        this.towers = res || [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.errorMsg = 'Failed to load towers';
+      },
+    });
+  }
+
+  addTower() {
+    this.clearMsgs();
+
+    if (!this.towerForm.name || !this.towerForm.floors) {
+      this.errorMsg = 'Tower name and floors required';
+      return;
+    }
+
+    const payload = {
+      name: this.towerForm.name,
+      floors: Number(this.towerForm.floors),
+    };
+
+    const opts = this.authOptions();
+    if (!opts) return;
+
+    this.http.post(`${this.baseUrl}/tower/admin/towers`, payload, opts).subscribe({
+      next: () => {
+        this.successMsg = '✅ Tower added';
+        this.towerForm = { name: '', floors: '' };
+        this.loadTowers();
+      },
+      error: (err) => {
+        this.errorMsg = err?.error?.error || 'Failed to add tower';
+      },
+    });
+  }
+
+  // -------------------------
+  // Units
+  // -------------------------
+  loadUnits() {
+    const opts = this.authOptions();
+    if (!opts) return;
+
+    this.http.get<any>(`${this.baseUrl}/admin/units`, opts).subscribe({
+      next: (res) => {
+        this.units = res?.units || [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.errorMsg = 'Failed to load units';
+      },
+    });
+  }
+
+  addUnit() {
+    this.clearMsgs();
+
+    if (
+      !this.unitForm.tower_id ||
+      !this.unitForm.unit_no ||
+      !this.unitForm.floor ||
+      !this.unitForm.bhk ||
+      !this.unitForm.rent
+    ) {
+      this.errorMsg = 'Fill all unit fields';
+      return;
+    }
+
+    const payload = {
+      tower_id: Number(this.unitForm.tower_id),
+      unit_no: this.unitForm.unit_no,
+      floor: Number(this.unitForm.floor),
+      bhk: this.unitForm.bhk,
+      rent: Number(this.unitForm.rent),
+      status: this.unitForm.status,
+    };
+
+    const opts = this.authOptions();
+    if (!opts) return;
+
+    this.http.post(`${this.baseUrl}/admin/units`, payload, opts).subscribe({
+      next: () => {
+        this.successMsg = '✅ Unit added';
+        this.unitForm = {
+          tower_id: '',
+          unit_no: '',
+          floor: '',
+          bhk: '2BHK',
+          rent: '',
+          status: 'available',
+        };
+        this.loadUnits();
+      },
+      error: (err) => {
+        this.errorMsg = err?.error?.error || 'Failed to add unit';
+      },
+    });
+  }
+
+  deleteUnit(id: number) {
+    this.clearMsgs();
+
+    if (!confirm('Are you sure you want to delete this unit?')) return;
+
+    const opts = this.authOptions();
+    if (!opts) return;
+
+    this.http.delete(`${this.baseUrl}/admin/units/${id}`, opts).subscribe({
+      next: () => {
+        this.successMsg = '✅ Unit deleted';
+        this.loadUnits();
+      },
+      error: () => {
+        this.errorMsg = 'Delete failed';
+      },
+    });
+  }
+
+  // -------------------------
+  // Bookings (Approve / Decline)
+  // -------------------------
+  loadBookings() {
+    this.clearMsgs();
+
+    const opts = this.authOptions();
+    if (!opts) return;
+
+    this.loading = true;
+
+    this.http
+      .get<any[]>(
+        `${this.baseUrl}/admin/bookings?status=${this.bookingStatusFilter}`,
+        opts
+      )
+      .subscribe({
+        next: (res) => {
+          this.bookings = res || [];
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error(err);
+          this.loading = false;
+          this.errorMsg = 'Failed to load bookings';
+        },
+      });
+  }
+
+  approveBooking(id: number) {
+    this.clearMsgs();
+
+    const opts = this.authOptions();
+    if (!opts) return;
+
+    this.http.put(`${this.baseUrl}/admin/bookings/${id}/approve`, {}, opts).subscribe({
+      next: () => {
+        this.successMsg = '✅ Booking approved';
+        this.loadBookings();
+      },
+      error: (err) => {
+        console.error(err);
+        this.errorMsg = 'Approve failed';
+      },
+    });
+  }
+
+  declineBooking(id: number) {
+    this.clearMsgs();
+
+    const opts = this.authOptions();
+    if (!opts) return;
+
+    const reason = this.declineReason[id] || 'Declined by admin';
+
+    this.http
+      .put(`${this.baseUrl}/admin/bookings/${id}/decline`, { reason }, opts)
+      .subscribe({
+        next: () => {
+          this.successMsg = '❌ Booking declined';
+          this.loadBookings();
+        },
+        error: (err) => {
+          console.error(err);
+          this.errorMsg = 'Decline failed';
+        },
+      });
   }
 }
