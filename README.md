@@ -46,7 +46,7 @@ Open Bash in backend and run below command for demo user
 
 docker compose exec backend flask shell
 
-Pasete the below code
+Paste the below code
 
 from app import app
 from extensions import db
@@ -54,21 +54,7 @@ from models.user import User
 from werkzeug.security import generate_password_hash
 
 with app.app_context():
-    if not User.query.filter_by(email="admin@gmail.com").first():
-        u = User(
-            name="Admin",
-            email="admin@gmail.com",
-            phone="9999999999",
-            password_hash=generate_password_hash("Admin@123"),
-            role="admin"
-        )
-        db.session.add(u)
-        db.session.commit()
-        print("✅ Admin inserted")
-
-
-        with app.app_context():
-    if not User.query.filter_by(email="admin@gmail.com").first():
+    if not User.query.filter_by(email="user@gmail.com").first():
         u = User(
             name="User",
             email="user@gmail.com",
@@ -79,6 +65,23 @@ with app.app_context():
         db.session.add(u)
         db.session.commit()
         print("✅ User inserted")
+
+
+with app.app_context():
+    if not User.query.filter_by(email="admin@gmail.com").first():
+        admin = User(
+            name="Admin",
+            email="admin@gmail.com",
+            phone="9999999999",
+            password_hash=generate_password_hash("Admin@123"),
+            role="admin"
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("✅ Admin inserted")
+    else:
+        print("ℹ️ Admin already exists")
+
 
 
 
