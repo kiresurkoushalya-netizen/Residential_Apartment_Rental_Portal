@@ -15,8 +15,5 @@ class Amenity(db.Model):
             "name": self.name,
             "icon": self.icon
         }
-    unit_amenities = db.Table(
-    "unit_amenities",
-    db.Column("unit_id", db.Integer, db.ForeignKey("units.id"), primary_key=True),
-    db.Column("amenity_id", db.Integer, db.ForeignKey("amenities.id"), primary_key=True),
-)
+    
+

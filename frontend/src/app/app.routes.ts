@@ -7,13 +7,22 @@ import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
-
+  { path: '', redirectTo: 'home', pathMatch: 'full' },
+  { path: 'home', component: HomeComponent },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
 
-  { path: 'home', component: HomeComponent, canActivate: [authGuard] },
+  // 🔐 Tenant dashboard (lazy-loaded)
+  {
+    path: 'tenant-dashboard',
+    loadComponent: () =>
+      import('./pages/tenant-dashboard/tenant-dashboard.component')
+        .then(m => m.TenantDashboardComponent),
+    canActivate: [authGuard]
+  },
+
+  
   { path: 'admin', component: AdminComponent, canActivate: [adminGuard] },
 
-  { path: '**', redirectTo: 'login' },
+  { path: '**', redirectTo: 'home' },
 ];

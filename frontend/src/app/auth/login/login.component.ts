@@ -28,37 +28,36 @@ export class LoginComponent {
   }
 
   submit() {
-    this.errorMsg = '';
+  this.errorMsg = '';
 
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
+  if (this.form.invalid) {
+    this.form.markAllAsTouched();
+    return;
+  }
+
+  this.loading = true;
+
+  this.auth.login(this.form.value).subscribe({
+    next: (res) => {
+      this.loading = false;
+
+      // ✅ 1. STORE TOKEN (VERY IMPORTANT)
+      localStorage.setItem('access_token', res.access_token);
+
+      // ✅ 2. (OPTIONAL) STORE USER INFO
+      localStorage.setItem('user', JSON.stringify(res.user));
+
+      // ✅ 3. ROLE-BASED NAVIGATION
+      if (res.role === 'admin') {
+        this.router.navigate(['/admin']);
+      } else {
+        this.router.navigate(['/tenant-dashboard']);
+      }
+    },
+    error: () => {
+      this.loading = false;
+      this.errorMsg = 'Invalid credentials';
     }
-
-    this.loading = true;
-
-    const payload = {
-      email: this.form.value.email,
-      password: this.form.value.password,
-    };
-
-    this.auth.login(payload).subscribe({
-      next: (res) => {
-        localStorage.setItem('token', res.access_token);
-        localStorage.setItem('role', res.role);
-
-        this.loading = false;
-
-        if (res.role === 'admin') this.router.navigate(['/admin']);
-        else this.router.navigate(['/home']);
-      },
-      error: (err) => {
-        this.loading = false;
-        this.errorMsg =
-          err?.error?.message ||
-          err?.error?.error ||
-          'Login failed. Please check email/password.';
-      },
-    });
+  });
   }
 }

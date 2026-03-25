@@ -103,6 +103,43 @@
         <option value="3BHK">3BHK</option>
       </select>
 
+      <select [(ngModel)]="unitForm.furnishing_type"
+      class="w-full mb-3 border rounded-lg px-3 py-2">
+         <option value="Furnished">Furnished</option>
+         <option value="Semi-Furnished">Semi-Furnished</option>
+         <option value="Unfurnished">Unfurnished</option>
+      </select>
+
+  <div class="mb-3 relative">
+
+  <!-- Dropdown Button -->
+  <button
+    type="button"
+    (click)="toggleAmenityDropdown()"
+    class="w-full border rounded-lg px-3 py-2 bg-white text-left flex justify-between items-center"
+  >
+    Select Amenities
+   <span class="text-m">⌄</span>
+  </button>
+
+  <!-- Dropdown List -->
+  <div *ngIf="showAmenityDropdown"
+       class="absolute z-10 w-full bg-white border rounded-lg shadow mt-1 p-3 max-h-40 overflow-y-auto">
+
+    <label *ngFor="let a of amenities" class="flex items-center gap-2 mb-1">
+      <input
+        type="checkbox"
+        [value]="a.id"
+        (change)="onAmenityChange($event)"
+      />
+      {{ a.name }}
+    </label>
+
+  </div>
+
+</div>
+    
+
       <input
         [(ngModel)]="unitForm.rent"
         placeholder="Rent"
@@ -135,6 +172,8 @@
               <th class="p-2 text-left">Unit</th>
               <th class="p-2 text-left">Tower</th>
               <th class="p-2 text-left">BHK</th>
+              <th class="p-2 text-left">Furnishing</th>
+              <th class="p-2 text-left">Amenities</th>
               <th class="p-2 text-left">Rent</th>
               <th class="p-2 text-left">Status</th>
               <th class="p-2 text-left">Action</th>
@@ -146,6 +185,21 @@
               <td class="p-2">{{ u.unit_no }}</td>
               <td class="p-2">{{ u.tower }}</td>
               <td class="p-2">{{ u.bhk }}</td>
+              <td class="p-2">
+              {{ u.furnishing_type || 'N/A' }}
+              </td>
+
+              <td class="p-2">
+              <span *ngIf="u.amenities?.length; else noAmenities">
+              <span *ngFor="let a of u.amenities; let i = index">
+              {{ a.name }}<span *ngIf="i < u.amenities.length - 1">, </span>
+              </span>
+              </span>
+
+              <ng-template #noAmenities>
+              <span class="text-gray-400">None</span>
+              </ng-template>
+              </td>
               <td class="p-2">{{ u.rent }}</td>
               <td class="p-2">{{ u.status }}</td>
               <td class="p-2">

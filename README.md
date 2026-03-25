@@ -24,12 +24,12 @@ Open the terminal for  Residential_Apartment_Rental_Portal
 
 Run below command
 
-1. docker compose build --no-cache
-2. docker-compose up 
+1. docker-compose down -v
+2. docker-compose up --build
 
 Now backend API ready with DB.
 
-Runbelow commoand for UI
+Runbelow command for UI
 
 Open the bash in frontend project and open bash and run below command
 
@@ -37,10 +37,10 @@ Open the bash in frontend project and open bash and run below command
 
 now UI also ready in http://localhost:4200/
 
-Run below commoand in bash for creating the all table
+Run below command in bash for creating the all table
 
-docker exec -it residential_apartment_rental_portal-backend-1 python -c "from app import app; from extensions import db; app.app_context().push(); db.create_all();
-print('✅ Tables created')"
+docker exec -it apartment_backend python -c "from app import app; from extensions import db; app.app_context().push(); db.create_all(); print('✅Tables created')"
+
 
 Open Bash in backend and run below command for demo user
 
@@ -62,6 +62,7 @@ with app.app_context():
             password_hash=generate_password_hash("User@123"),
             role="tenant"
         )
+        
         db.session.add(u)
         db.session.commit()
         print("✅ User inserted")
@@ -81,7 +82,20 @@ with app.app_context():
         print("✅ Admin inserted")
     else:
         print("ℹ️ Admin already exists")
+        
+Database Verification & SQL Queries
 
+Step 1: Access PostgreSQL Database
+
+Run the below command to connect to PostgreSQL running inside Docker container:
+
+docker exec -it apartment_postgres psql -U postgres -d apartment_db
+
+Step 2: List All Tables
+
+Run the below command to check all created tables:
+
+\dt
 
 
 

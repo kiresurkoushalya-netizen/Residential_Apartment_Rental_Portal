@@ -5,19 +5,64 @@ from extensions import db
 from models.unit import Unit
 from models.tower import Tower
 from models.booking import Booking
+from models.amenity import Amenity
 
+# --------------------------------------------------
+# Blueprint
+# --------------------------------------------------
 admin_bp = Blueprint("admin_bp", __name__, url_prefix="/api/admin")
 
-
-# ✅ simple admin check using JWT claims
+# --------------------------------------------------
+# ✅ ADMIN CHECK (JWT CLAIMS)
+# --------------------------------------------------
 def admin_required():
     claims = get_jwt()
     return claims.get("role") == "admin"
 
 
-# -----------------------------------
-# ✅ UNITS CRUD (Admin)
-# -----------------------------------
+# ==================================================
+# 🏢 TOWERS CRUD (ADMIN)
+# ==================================================
+
+@admin_bp.post("/towers")
+@jwt_required()
+def add_tower():
+    if not admin_required():
+        return jsonify({"error": "Admin only"}), 403
+
+    data = request.get_json() or {}
+
+    name = data.get("name")
+    location = data.get("location")
+
+    if not name or not location:
+        return jsonify({"error": "name and location required"}), 400
+
+    tower = Tower(name=name, location=location)
+    db.session.add(tower)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Tower added successfully",
+        "tower": tower.to_dict()
+    }), 201
+
+
+@admin_bp.get("/towers")
+@jwt_required()
+def get_towers():
+    if not admin_required():
+        return jsonify({"error": "Admin only"}), 403
+
+    towers = Tower.query.order_by(Tower.id.desc()).all()
+    return jsonify({
+        "towers": [t.to_dict() for t in towers]
+    }), 200
+
+
+# ==================================================
+# 🏠 UNITS CRUD (ADMIN)
+# ==================================================
 
 @admin_bp.post("/units")
 @jwt_required()
@@ -27,42 +72,67 @@ def add_unit():
 
     data = request.get_json() or {}
 
-    required_fields = ["tower_id", "unit_no", "floor", "bhk", "rent"]
-    for field in required_fields:
-        if field not in data or data[field] in [None, ""]:
-            return jsonify({"error": f"{field} is required"}), 400
+    try:
+        unit = Unit(
+            tower_id=int(data["tower_id"]),
+            unit_no=data["unit_no"],
+            floor=int(data["floor"]),
+            bhk=data["bhk"],
+            rent=float(data["rent"]),
+            status=data.get("status", "available"),
 
-    # ✅ validate tower_id FK
-    tower = Tower.query.get(int(data["tower_id"]))
-    if not tower:
-        return jsonify({"error": "Invalid tower_id. Tower does not exist"}), 400
+            # ✅ FIX
+            furnishing_type=data.get("furnishing_type")
+        )
 
-    unit = Unit(
-        tower_id=int(data["tower_id"]),
-        unit_no=data["unit_no"],
-        floor=int(data["floor"]),
-        bhk=data["bhk"],
-        rent=data["rent"],
-        status=data.get("status", "available")
-    )
+        # ✅ SAVE AMENITIES
+        if "amenities" in data:
+            amenities = Amenity.query.filter(
+                Amenity.id.in_(data["amenities"])
+            ).all()
 
-    db.session.add(unit)
-    db.session.commit()
+            unit.amenities = amenities
 
-    return jsonify({
-        "message": "Unit added successfully",
-        "unit": unit.to_dict()
-    }), 201
+        db.session.add(unit)
+        db.session.commit()
+
+        return jsonify({"message": "Unit added successfully"}), 201
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @admin_bp.get("/units")
 @jwt_required()
-def get_all_units():
+def get_units():
     if not admin_required():
         return jsonify({"error": "Admin only"}), 403
 
-    units = Unit.query.order_by(Unit.id.desc()).all()
-    return jsonify({"units": [u.to_dict() for u in units]}), 200
+    units = Unit.query.all()
+
+    result = []
+
+    for u in units:
+        result.append({
+            "id": u.id,
+            "unit_no": u.unit_no,
+            "tower": u.tower.name if u.tower else None,
+            "floor": u.floor,
+            "bhk": u.bhk,
+            "rent": u.rent,
+            "status": u.status,
+
+            # ✅ IMPORTANT
+            "furnishing_type": u.furnishing_type,
+
+            # ✅ IMPORTANT
+            "amenities": [
+                {"id": a.id, "name": a.name}
+                for a in u.amenities
+            ]
+        })
+
+    return jsonify({"units": result}), 200
 
 
 @admin_bp.delete("/units/<int:unit_id>")
@@ -75,21 +145,48 @@ def delete_unit(unit_id):
     db.session.delete(unit)
     db.session.commit()
 
-    return jsonify({"message": "Unit deleted successfully"}), 200
+    return jsonify({
+        "message": "Unit deleted successfully"
+    }), 200
 
 
-# -----------------------------------
-# ✅ BOOKINGS (Admin)
-# -----------------------------------
+# ==================================================
+# 📅 BOOKINGS (ADMIN)
+# ==================================================
 
-@admin_bp.put("/bookings/<int:booking_id>/approve")
+@admin_bp.route('/bookings/<int:id>/approve', methods=['PUT'])
 @jwt_required()
-def approve_booking(booking_id):
-    if not admin_required():
-        return jsonify({"error": "Admin only"}), 403
+def approve_booking(id):
+    booking = Booking.query.get_or_404(id)
 
-    booking = Booking.query.get_or_404(booking_id)
-    booking.status = "APPROVED"
+    booking.status = "approved"
+
+    # ✅ Mark unit occupied
+    unit = Unit.query.get(booking.unit_id)
+    if unit:
+        unit.status = "occupied"
+
     db.session.commit()
 
-    return jsonify({"message": "Booking approved"}), 200
+    return jsonify({"message": "Booking approved"})
+
+
+@admin_bp.route('/bookings/<int:id>/reject', methods=['PUT'])
+@jwt_required()
+def reject_booking(id):
+    booking = Booking.query.get_or_404(id)
+
+    data = request.get_json()
+    reason = data.get("reason", "Declined by admin")
+
+    booking.status = "declined"
+    booking.decline_reason = reason
+
+    # ✅ IMPORTANT — Make Unit Available Again
+    unit = Unit.query.get(booking.unit_id)
+    if unit:
+        unit.status = "available"
+
+    db.session.commit()
+
+    return jsonify({"message": "Booking declined"})

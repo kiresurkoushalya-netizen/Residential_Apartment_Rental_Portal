@@ -33,6 +33,12 @@ export class AdminComponent implements OnInit {
     floors: ''
   };
 
+  // Amenities
+  amenities: any[] = [];
+
+  // ✅ IMPORTANT (selected amenities)
+  selectedAmenities: number[] = [];
+
   // Units
   units: any[] = [];
   unitForm = {
@@ -41,7 +47,8 @@ export class AdminComponent implements OnInit {
     floor: '',
     bhk: '2BHK',
     rent: '',
-    status: 'available'
+    status: 'available',
+    furnishing_type: ''
   };
 
   constructor(
@@ -55,6 +62,7 @@ export class AdminComponent implements OnInit {
     this.loadTowers();
     this.loadUnits();
     this.loadBookings();
+    this.getAmenities();
   }
 
   // -------------------------
@@ -94,13 +102,12 @@ export class AdminComponent implements OnInit {
     const opts = this.authOptions();
     if (!opts) return;
 
-    this.http.get(`${this.baseUrl}/dashbard/occupancy`, opts).subscribe({
+    this.http.get(`${this.baseUrl}/admin/dashboard/occupancy`, opts).subscribe({
       next: (res) => {
         this.occupancy = res;
-        this.cdr.detectChanges();
       },
       error: () => {
-        this.errorMsg = 'Failed to load dashboard';
+        this.errorMsg = "Failed to load dashboard";
       },
     });
   }
@@ -166,6 +173,39 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  getAmenities() {
+    this.http.get<any[]>(`${this.baseUrl}/amenities`)
+      .subscribe({
+        next: (data) => {
+          console.log("🔥 Amenities API:", data);
+          this.amenities = data;
+        },
+        error: (err) => {
+          console.error("❌ Amenities error:", err);
+        }
+      });
+  }
+
+  // ✅ FIXED FUNCTION
+  onAmenityChange(event: any) {
+    const id = Number(event.target.value);
+
+    if (event.target.checked) {
+      this.selectedAmenities.push(id);
+    } else {
+      this.selectedAmenities = this.selectedAmenities.filter(a => a !== id);
+    }
+
+    console.log("Selected Amenities:", this.selectedAmenities);
+  }
+
+  showAmenityDropdown = false;
+
+  toggleAmenityDropdown() {
+    this.showAmenityDropdown = !this.showAmenityDropdown;
+  }
+
+  // ✅ FINAL FIXED ADD UNIT
   addUnit() {
     this.clearMsgs();
 
@@ -187,6 +227,10 @@ export class AdminComponent implements OnInit {
       bhk: this.unitForm.bhk,
       rent: Number(this.unitForm.rent),
       status: this.unitForm.status,
+      furnishing_type: this.unitForm.furnishing_type,
+
+      // ✅ CRITICAL FIX
+      amenities: this.selectedAmenities
     };
 
     const opts = this.authOptions();
@@ -195,6 +239,8 @@ export class AdminComponent implements OnInit {
     this.http.post(`${this.baseUrl}/admin/units`, payload, opts).subscribe({
       next: () => {
         this.successMsg = '✅ Unit added';
+
+        // ✅ RESET FORM
         this.unitForm = {
           tower_id: '',
           unit_no: '',
@@ -202,7 +248,12 @@ export class AdminComponent implements OnInit {
           bhk: '2BHK',
           rent: '',
           status: 'available',
+          furnishing_type: ''
         };
+
+        // ✅ RESET AMENITIES
+        this.selectedAmenities = [];
+
         this.loadUnits();
       },
       error: (err) => {
@@ -231,7 +282,7 @@ export class AdminComponent implements OnInit {
   }
 
   // -------------------------
-  // Bookings (Approve / Decline)
+  // Bookings
   // -------------------------
   loadBookings() {
     this.clearMsgs();
@@ -271,8 +322,7 @@ export class AdminComponent implements OnInit {
         this.successMsg = '✅ Booking approved';
         this.loadBookings();
       },
-      error: (err) => {
-        console.error(err);
+      error: () => {
         this.errorMsg = 'Approve failed';
       },
     });
@@ -287,14 +337,13 @@ export class AdminComponent implements OnInit {
     const reason = this.declineReason[id] || 'Declined by admin';
 
     this.http
-      .put(`${this.baseUrl}/admin/bookings/${id}/decline`, { reason }, opts)
+      .put(`${this.baseUrl}/admin/bookings/${id}/reject`, { reason }, opts)
       .subscribe({
         next: () => {
           this.successMsg = '❌ Booking declined';
           this.loadBookings();
         },
-        error: (err) => {
-          console.error(err);
+        error: () => {
           this.errorMsg = 'Decline failed';
         },
       });

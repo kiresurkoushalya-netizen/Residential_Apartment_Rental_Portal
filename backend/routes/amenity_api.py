@@ -1,141 +1,141 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-
 from models import db, Amenity, Unit
-
+from utils.role_guard import role_required   # ✅ clean role-based decorator
 
 amenity_bp = Blueprint("amenity_bp", __name__, url_prefix="/api")
 
 
-def admin_required():
-    identity = get_jwt_identity()
-    return identity and identity.get("role") == "admin"
-
-
 # -------------------------
-# Public/Resident
+# PUBLIC: Get all amenities
 # -------------------------
 @amenity_bp.get("/amenities")
-def list_amenities():
+def get_amenities():
     amenities = Amenity.query.order_by(Amenity.id.asc()).all()
     return jsonify([a.to_dict() for a in amenities])
 
 
 # -------------------------
-# Admin - CRUD
+# ADMIN: Create amenity
 # -------------------------
 @amenity_bp.post("/admin/amenities")
-@jwt_required()
+@role_required("admin")   # ✅ ONLY THIS (no jwt_required, no admin_required)
 def create_amenity():
-    if not admin_required():
-        return jsonify({"error": "Admin only"}), 403
 
     data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
     name = data.get("name")
+    icon = data.get("icon")
 
     if not name:
-        return jsonify({"error": "name required"}), 400
+        return jsonify({"error": "Name required"}), 400
 
     if Amenity.query.filter_by(name=name).first():
         return jsonify({"error": "Amenity already exists"}), 409
 
-    amenity = Amenity(
-        name=name,
-        icon=data.get("icon")
-    )
+    amenity = Amenity(name=name, icon=icon)
 
     db.session.add(amenity)
     db.session.commit()
+
     return jsonify(amenity.to_dict()), 201
 
 
-@amenity_bp.put("/admin/amenities/<int:amenity_id>")
-@jwt_required()
-def update_amenity(amenity_id):
-    if not admin_required():
-        return jsonify({"error": "Admin only"}), 403
+# -------------------------
+# ADMIN: Update amenity
+# -------------------------
+@amenity_bp.put("/admin/amenities/<int:id>")
+@role_required("admin")
+def update_amenity(id):
 
-    amenity = Amenity.query.get_or_404(amenity_id)
+    amenity = Amenity.query.get_or_404(id)
     data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
 
     amenity.name = data.get("name", amenity.name)
     amenity.icon = data.get("icon", amenity.icon)
 
     db.session.commit()
+
     return jsonify(amenity.to_dict())
 
 
-@amenity_bp.delete("/admin/amenities/<int:amenity_id>")
-@jwt_required()
-def delete_amenity(amenity_id):
-    if not admin_required():
-        return jsonify({"error": "Admin only"}), 403
+# -------------------------
+# ADMIN: Delete amenity
+# -------------------------
+@amenity_bp.delete("/admin/amenities/<int:id>")
+@role_required("admin")
+def delete_amenity(id):
 
-    amenity = Amenity.query.get_or_404(amenity_id)
+    amenity = Amenity.query.get_or_404(id)
+
     db.session.delete(amenity)
     db.session.commit()
-    return jsonify({"message": "Amenity deleted successfully"})
+
+    return jsonify({"message": "Deleted successfully"})
 
 
 # -------------------------
-# Unit Amenities Mapping APIs
+# UNIT → AMENITIES (PUBLIC)
 # -------------------------
-
 @amenity_bp.get("/units/<int:unit_id>/amenities")
 def get_unit_amenities(unit_id):
+
     unit = Unit.query.get_or_404(unit_id)
 
-    # SQLAlchemy "secondary" can be done, but here using raw join table
-    rows = db.session.execute(
-        unit_amenities.select().where(unit_amenities.c.unit_id == unit_id)
-    ).fetchall()
-
-    amenity_ids = [r.amenity_id for r in rows]
-    amenities = Amenity.query.filter(Amenity.id.in_(amenity_ids)).all()
-
     return jsonify({
-        "unit_id": unit_id,
+        "unit_id": unit.id,
         "unit_no": unit.unit_no,
-        "amenities": [a.to_dict() for a in amenities]
+        "amenities": [a.to_dict() for a in unit.amenities]
     })
 
 
+# -------------------------
+# ADMIN: Add amenities to unit
+# -------------------------
 @amenity_bp.post("/admin/units/<int:unit_id>/amenities")
-@jwt_required()
+@role_required("admin")
 def add_unit_amenities(unit_id):
-    if not admin_required():
-        return jsonify({"error": "Admin only"}), 403
 
-    Unit.query.get_or_404(unit_id)
+    unit = Unit.query.get_or_404(unit_id)
     data = request.get_json()
 
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
     amenity_ids = data.get("amenity_ids", [])
+
     if not amenity_ids:
         return jsonify({"error": "amenity_ids required"}), 400
 
-    # Insert into join table
-    for aid in amenity_ids:
-        if Amenity.query.get(aid):
-            db.session.execute(unit_amenities.insert().values(unit_id=unit_id, amenity_id=aid))
+    amenities = Amenity.query.filter(
+        Amenity.id.in_(amenity_ids)
+    ).all()
+
+    unit.amenities.extend(amenities)
 
     db.session.commit()
-    return jsonify({"message": "Amenities mapped to unit successfully"}), 201
+
+    return jsonify({"message": "Amenities added"})
 
 
+# -------------------------
+# ADMIN: Remove amenity from unit
+# -------------------------
 @amenity_bp.delete("/admin/units/<int:unit_id>/amenities/<int:amenity_id>")
-@jwt_required()
+@role_required("admin")
 def remove_unit_amenity(unit_id, amenity_id):
-    if not admin_required():
-        return jsonify({"error": "Admin only"}), 403
 
-    Unit.query.get_or_404(unit_id)
-    Amenity.query.get_or_404(amenity_id)
+    unit = Unit.query.get_or_404(unit_id)
+    amenity = Amenity.query.get_or_404(amenity_id)
 
-    db.session.execute(
-        unit_amenities.delete().where(
-            (unit_amenities.c.unit_id == unit_id) &
-            (unit_amenities.c.amenity_id == amenity_id)
-        )
-    )
+    if amenity in unit.amenities:
+        unit.amenities.remove(amenity)
+
     db.session.commit()
-    return jsonify({"message": "Amenity removed from unit"})
+
+    return jsonify({"message": "Removed"})

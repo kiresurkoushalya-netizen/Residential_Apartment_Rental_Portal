@@ -8,6 +8,7 @@ export class AuthService {
 
   constructor(private http: HttpClient) {}
 
+  // ✅ LOGIN
   login(payload: { email: string; password: string }) {
     return this.http.post<any>(`${this.baseUrl}/login`, payload).pipe(
       tap((res) => {
@@ -17,10 +18,19 @@ export class AuthService {
     );
   }
 
-  register(payload: { name: string; email: string; phone?: string; password: string }) {
+  // ✅ REGISTER
+  register(payload: {
+    name: string;
+    email: string;
+    phone?: string;
+    password: string;
+  }) {
     return this.http.post<any>(`${this.baseUrl}/register`, payload);
-  }  
+  }
 
+  // -----------------------------
+  // Helpers (MERGED & CLEAN)
+  // -----------------------------
   getToken(): string | null {
     return localStorage.getItem('token');
   }
@@ -30,11 +40,14 @@ export class AuthService {
   }
 
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    return !!localStorage.getItem('access_token');
+  }
+
+  isAdmin(): boolean {
+    return this.getRole() === 'admin';
   }
 
   logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
+    localStorage.clear(); // clears token + role safely
   }
 }

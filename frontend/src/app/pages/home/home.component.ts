@@ -57,6 +57,16 @@ export class HomeComponent implements OnInit {
     });
   }
 
+  getUnitImage(index: number): string {
+    const images = [
+      'assets/units/flat1.jpg',
+      'assets/units/flat2.jpg',
+      'assets/units/flat3.jpg'
+    ];
+
+    return images[index % images.length];
+  }
+
  requestBooking(unitId: number) {
   this.successMsg = '';
   this.errorMsg = '';

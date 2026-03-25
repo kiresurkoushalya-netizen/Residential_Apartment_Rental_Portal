@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from models import db, Unit, Tower
+from models import db, Unit, Tower, Amenity
 
 unit_bp = Blueprint("unit_bp", __name__, url_prefix="/api")
 
@@ -13,20 +13,14 @@ def admin_required():
 
 @unit_bp.get("/units")
 def list_units():
-    tower_id = request.args.get("tower_id", type=int)
-    floor = request.args.get("floor", type=int)
     status = request.args.get("status")
 
     q = Unit.query
-    if tower_id:
-        q = q.filter_by(tower_id=tower_id)
-    if floor:
-        q = q.filter_by(floor=floor)
     if status:
-        q = q.filter_by(status=status)
+        q = q.filter(Unit.status.ilike(status))  # case-safe
 
     units = q.order_by(Unit.id.asc()).all()
-    return jsonify([u.to_dict() for u in units])
+    return jsonify([u.to_dict() for u in units]), 200
 
 
 @unit_bp.get("/units/<int:unit_id>")
@@ -46,6 +40,11 @@ def create_unit():
     tower_id = data.get("tower_id")
     if not tower_id or not Tower.query.get(tower_id):
         return jsonify({"error": "Valid tower_id required"}), 400
+    
+    amenity_ids = data.get("amenity_ids", [])
+    amenities = Amenity.query.filter(
+        Amenity.id.in_(amenity_ids)
+    ).all()
 
     unit = Unit(
         tower_id=tower_id,
@@ -54,6 +53,8 @@ def create_unit():
         bhk=data.get("bhk"),
         rent=data.get("rent"),
         status=data.get("status", "available"),
+        furnishing_type=data.get("furnishing_type", "Unfurnished"),
+        amenities=amenities
     )
 
     db.session.add(unit)
@@ -75,6 +76,14 @@ def update_unit(unit_id):
     unit.bhk = data.get("bhk", unit.bhk)
     unit.rent = data.get("rent", unit.rent)
     unit.status = data.get("status", unit.status)
+    unit.furnishing_type = data.get("furnishing_type", unit.furnishing_type)
+
+    # ✅ UPDATE AMENITIES
+    if "amenity_ids" in data:
+        amenities = Amenity.query.filter(
+            Amenity.id.in_(data.get("amenity_ids", []))
+        ).all()
+        unit.amenities = amenities
 
     db.session.commit()
     return jsonify(unit.to_dict())

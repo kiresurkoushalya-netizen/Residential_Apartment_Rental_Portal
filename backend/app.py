@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 
@@ -20,39 +20,40 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # ✅ CORS FIX (Angular + JWT Authorization Header + OPTIONS preflight)
+    # CORS setup
     CORS(
         app,
         resources={r"/api/*": {"origins": "http://localhost:4200"}},
-        supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization"],
-        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+        supports_credentials=True
     )
-
-    # ✅ FIX: Always return 200 OK for OPTIONS preflight
-    @app.before_request
-    def handle_options_preflight():
-        if request.method == "OPTIONS":
-            return "", 200
 
     # Initialize extensions
     db.init_app(app)
     JWTManager(app)
 
+    # Import models so SQLAlchemy registers tables
+    import models   # ✅ this loads all models via __init__.py
+
+    # Create tables
+    # Create tables (force creation debug)
+    with app.app_context():
+      print("👉 Tables in metadata:", db.metadata.tables.keys())
+      db.create_all()
+      print("✅ Tables created!")
+
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(user_bp, url_prefix="/api/user")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
-
-    # ✅ Booking API under /api
     app.register_blueprint(booking_bp, url_prefix="/api")
 
     app.register_blueprint(tower_bp, url_prefix="/api/tower")
-    app.register_blueprint(unit_bp, url_prefix="/api/")
-    app.register_blueprint(amenity_bp, url_prefix="/api/amenity")
+    app.register_blueprint(unit_bp)
+    app.register_blueprint(amenity_bp)
     app.register_blueprint(tenant_bp, url_prefix="/api/tenant")
-    app.register_blueprint(dashboard_bp, url_prefix="/api/dashbard")
+    app.register_blueprint(dashboard_bp)
 
+    # Health check route
     @app.route("/health")
     def health():
         return {"status": "ok"}, 200

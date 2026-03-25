@@ -1,0 +1,117 @@
+/* Page wrapper */
+.dashboard {
+  min-height: 100vh;
+  padding: 24px;
+  background-color: #f5f7fa;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #2c3e50;
+}
+
+.sub {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Logout button */
+.logout {
+  background-color: #e74c3c;
+  color: #ffffff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.logout:hover {
+  background-color: #c0392b;
+}
+
+/* Status messages */
+.message {
+  margin: 12px 0;
+  padding: 10px;
+  border-radius: 6px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+/* Loading text */
+.loading {
+  font-size: 16px;
+  color: #555;
+  padding: 20px 0;
+}
+
+/* Units grid */
+.units {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+/* Unit card */
+.unit-card {
+  background-color: #ffffff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.unit-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.unit-card h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.unit-card p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+/* Booking button */
+.unit-card button {
+  margin-top: 12px;
+  width: 100%;
+  padding: 8px;
+  background-color: #2ecc71;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.unit-card button:hover {
+  background-color: #27ae60;
+}
+
+/* Empty state */
+.empty {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 15px;
+  color: #9ca3af;
+}

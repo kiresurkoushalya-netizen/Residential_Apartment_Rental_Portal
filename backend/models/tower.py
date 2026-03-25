@@ -10,7 +10,11 @@ class Tower(db.Model):
     floors = db.Column(db.Integer, nullable=False, default=1)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    units = db.relationship("Unit", backref="tower", lazy=True, cascade="all, delete-orphan")
+    units = db.relationship(
+        "Unit", 
+        back_populates="tower", 
+        lazy=True, 
+        cascade="all, delete-orphan")
 
     def to_dict(self):
         return {

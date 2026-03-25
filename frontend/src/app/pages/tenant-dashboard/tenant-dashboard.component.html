@@ -1,0 +1,49 @@
+<div class="dashboard">
+
+  <header class="header">
+    <div>
+      <h2>Tenant Dashboard</h2>
+      <p class="sub">Welcome, Tenant 👋</p>
+    </div>
+    <button class="logout" (click)="logout()">Logout</button>
+  </header>
+
+  <p class="message" *ngIf="message">{{ message }}</p>
+
+  <!-- 🔥 ASYNC PIPE ONLY -->
+  <ng-container *ngIf="units$ | async as units">
+
+    <div class="units" *ngIf="units.length > 0">
+      <div class="unit-card" *ngFor="let unit of units">
+        <h4>Unit {{ unit.unit_no }}</h4>
+        <p>Tower: {{ unit.tower }}</p>
+        <p>BHK: {{ unit.bhk }}</p>
+        <p>Rent: ₹{{ unit.rent }}</p>
+        <p><strong>Furnishing:</strong> {{ unit.furnishing_type || 'N/A' }}</p>
+
+        <p>
+        <strong>Amenities:</strong>
+        <span *ngIf="unit.amenities?.length; else noAmenities">
+        <span *ngFor="let a of unit.amenities; let i = index">
+        {{ a.name }}<span *ngIf="i < unit.amenities.length - 1">, </span>
+        </span>
+        </span>
+
+        <ng-template #noAmenities>
+        None
+        </ng-template>
+        </p>
+
+        <button (click)="bookUnit(unit.id)">
+          Request Booking
+        </button>
+      </div>
+    </div>
+
+    <p class="empty" *ngIf="units.length === 0">
+      No units available right now
+    </p>
+
+  </ng-container>
+
+</div>

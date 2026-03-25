@@ -16,7 +16,9 @@ class Booking(db.Model):
     reason = db.Column(db.Text, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
+    
+    unit = db.relationship("Unit")
+    
     def to_dict(self):
         return {
             "id": self.id,

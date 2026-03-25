@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy import func
+from flask_jwt_extended import jwt_required, get_jwt
+from sqlalchemy import func, case
 
 from models import db, Unit, Tower
 
@@ -8,25 +8,29 @@ dashboard_bp = Blueprint("dashboard_bp", __name__, url_prefix="/api/admin/dashbo
 
 
 def admin_required():
-    identity = get_jwt_identity()
-    return identity and identity.get("role") == "admin"
+    claims = get_jwt()
+    return claims.get("role") == "admin"
 
 
 @dashboard_bp.get("/occupancy")
 @jwt_required()
 def occupancy_summary():
+
     if not admin_required():
         return jsonify({"error": "Admin only"}), 403
 
     total_units = Unit.query.count()
     occupied_units = Unit.query.filter_by(status="occupied").count()
-    vacant_units = total_units - occupied_units
-    occupancy_rate = round((occupied_units / total_units) * 100, 2) if total_units > 0 else 0
+    available_units = Unit.query.filter_by(status="available").count()
+
+    occupancy_rate = 0
+    if total_units > 0:
+        occupancy_rate = round((occupied_units / total_units) * 100, 2)
 
     return jsonify({
         "total_units": total_units,
         "occupied_units": occupied_units,
-        "vacant_units": vacant_units,
+        "available_units": available_units,   # ✅ IMPORTANT CHANGE
         "occupancy_rate": occupancy_rate
     })
 
@@ -34,6 +38,7 @@ def occupancy_summary():
 @dashboard_bp.get("/occupancy/towers")
 @jwt_required()
 def occupancy_by_tower():
+
     if not admin_required():
         return jsonify({"error": "Admin only"}), 403
 
@@ -42,7 +47,7 @@ def occupancy_by_tower():
             Tower.id,
             Tower.name,
             func.count(Unit.id).label("total_units"),
-            func.sum(func.case((Unit.status == "occupied", 1), else_=0)).label("occupied_units")
+            func.sum(case((Unit.status == "occupied", 1), else_=0)).label("occupied_units")
         )
         .join(Unit, Unit.tower_id == Tower.id)
         .group_by(Tower.id)
@@ -50,11 +55,15 @@ def occupancy_by_tower():
     )
 
     data = []
+
     for r in result:
-        total = int(r.total_units)
-        occupied = int(r.occupied_units or 0)
+        total = r.total_units
+        occupied = r.occupied_units or 0
         vacant = total - occupied
-        rate = round((occupied / total) * 100, 2) if total > 0 else 0
+
+        rate = 0
+        if total > 0:
+            rate = round((occupied / total) * 100, 2)
 
         data.append({
             "tower_id": r.id,

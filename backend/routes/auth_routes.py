@@ -10,7 +10,7 @@ from flask_jwt_extended import (
 from models.user import User
 from extensions import db
 
-auth_bp = Blueprint("auth_bp", __name__)
+auth_bp = Blueprint("auth_bp", __name__, url_prefix="/api/auth")
 
 
 # -----------------------------
@@ -28,15 +28,17 @@ def login():
 
     user = User.query.filter_by(email=email).first()
 
-    # ✅ password_hash (correct)
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify({"message": "Invalid credentials"}), 401
 
-    # ✅ identity MUST be string (fix for Subject must be a string)
+    # ✅ identity MUST be string
     access_token = create_access_token(
-        identity=str(user.id),
-        additional_claims={"role": user.role}
-    )
+    identity=str(user.id), 
+    additional_claims={
+        "id": user.id,
+        "email": user.email,
+        "role": user.role   # 🔥 IMPORTANT
+    })
 
     return jsonify({
         "access_token": access_token,
@@ -55,19 +57,14 @@ def register():
     password = data.get("password")
     name = data.get("name")
     phone = data.get("phone")
-
-    # optional role
     role = (data.get("role") or "tenant").lower()
 
     if not email or not password or not name:
         return jsonify({"message": "name, email, password required"}), 400
 
-    # ✅ allow only specific roles
     allowed_roles = ["tenant", "admin"]
     if role not in allowed_roles:
-        return jsonify({"message": "Invalid role. Allowed: tenant, admin"}), 400
-
-    # ✅ SECURITY: don't allow admin register in public API
+        return jsonify({"message": "Invalid role"}), 400
 
     if User.query.filter_by(email=email).first():
         return jsonify({"message": "Email already exists"}), 409
@@ -87,12 +84,11 @@ def register():
 
 
 # -----------------------------
-# ✅ CURRENT USER (ME)
+# ✅ CURRENT USER
 # -----------------------------
 @auth_bp.route("/me", methods=["GET"])
 @jwt_required()
 def me():
-    # ✅ identity is string user_id
     user_id = int(get_jwt_identity())
 
     user = User.query.get(user_id)
@@ -100,12 +96,11 @@ def me():
         return jsonify({"message": "User not found"}), 404
 
     claims = get_jwt()
-    role = claims.get("role")
 
     return jsonify({
         "id": user.id,
         "name": user.name,
         "email": user.email,
         "phone": user.phone,
-        "role": role
+        "role": claims.get("role")
     }), 200

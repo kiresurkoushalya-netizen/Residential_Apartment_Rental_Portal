@@ -1,23 +1,47 @@
 services:
- db:
-  image: postgres:15
-  env_file:
-    - .env
-  environment:
-    POSTGRES_DB: ${POSTGRES_DB}
-    POSTGRES_USER: ${POSTGRES_USER}
-    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  volumes:
-    - pgdata:/var/lib/postgresql/data
 
- backend:
-  build: ./backend
-  env_file:
-    - .env
-  depends_on:
-    - db
-  ports:
-    - "5000:5000"    
+  db:
+    image: postgres:15
+    container_name: apartment_postgres
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+  backend:
+    build: ./backend
+    container_name: apartment_backend
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: apartment_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
 
 volumes:
-  pgdata:
+  postgres_data:
