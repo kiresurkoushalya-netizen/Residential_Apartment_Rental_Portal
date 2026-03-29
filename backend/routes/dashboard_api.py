@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 from sqlalchemy import func, case
 
-from models import db, Unit, Tower
+from models import db, Unit, Tower, Booking
 
 dashboard_bp = Blueprint("dashboard_bp", __name__, url_prefix="/api/admin/dashboard")
 
@@ -75,3 +75,26 @@ def occupancy_by_tower():
         })
 
     return jsonify(data)
+
+# ==================================================
+# 📅 BOOKING SUMMARY (ADMIN DASHBOARD)
+# ==================================================
+
+@dashboard_bp.get("/bookings")
+@jwt_required()
+def booking_summary():
+
+    if not admin_required():
+        return jsonify({"error": "Admin only"}), 403
+
+    total = Booking.query.count()
+    pending = Booking.query.filter_by(status="pending").count()
+    approved = Booking.query.filter_by(status="approved").count()
+    declined = Booking.query.filter_by(status="declined").count()
+
+    return jsonify({
+        "total_bookings": total,
+        "pending_bookings": pending,
+        "approved_bookings": approved,
+        "declined_bookings": declined
+    })

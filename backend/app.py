@@ -53,6 +53,8 @@ def create_app():
     app.register_blueprint(tenant_bp, url_prefix="/api/tenant")
     app.register_blueprint(dashboard_bp)
 
+    
+
     # Health check route
     @app.route("/health")
     def health():

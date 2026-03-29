@@ -14,7 +14,8 @@
   <ng-container *ngIf="units$ | async as units">
 
     <div class="units" *ngIf="units.length > 0">
-      <div class="unit-card" *ngFor="let unit of units">
+      <div class="unit-card" *ngFor="let unit of units; let i = index ">
+        
         <h4>Unit {{ unit.unit_no }}</h4>
         <p>Tower: {{ unit.tower }}</p>
         <p>BHK: {{ unit.bhk }}</p>

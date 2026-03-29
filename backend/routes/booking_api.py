@@ -138,7 +138,6 @@ def approve_booking(booking_id):
     db.session.commit()
     return jsonify({"message": "✅ Booking approved"}), 200
 
-
 @booking_bp.route("/admin/bookings/<int:booking_id>/decline", methods=["PUT"])
 @jwt_required()
 def decline_booking(booking_id):
@@ -146,6 +145,7 @@ def decline_booking(booking_id):
         return jsonify({"error": "Admin only"}), 403
 
     booking = Booking.query.get_or_404(booking_id)
+
     data = request.get_json() or {}
 
     booking.status = "declined"
@@ -156,4 +156,10 @@ def decline_booking(booking_id):
         unit.status = "available"
 
     db.session.commit()
-    return jsonify({"message": "❌ Booking declined"}), 200
+
+    return jsonify({
+        "message": "❌ Booking declined",
+        "booking_id": booking_id
+    }), 200
+
+

@@ -10,7 +10,7 @@ from models.amenity import Amenity
 # --------------------------------------------------
 # Blueprint
 # --------------------------------------------------
-admin_bp = Blueprint("admin_bp", __name__, url_prefix="/api/admin")
+admin_bp = Blueprint("admin_bp", __name__)
 
 # --------------------------------------------------
 # ✅ ADMIN CHECK (JWT CLAIMS)
@@ -33,12 +33,12 @@ def add_tower():
     data = request.get_json() or {}
 
     name = data.get("name")
-    location = data.get("location")
+    floors = data.get("floors")
 
-    if not name or not location:
-        return jsonify({"error": "name and location required"}), 400
+    if not name:
+        return jsonify({"error": "name is required"}), 400
 
-    tower = Tower(name=name, location=location)
+    tower = Tower(name=name, floors=int(floors or 1))
     db.session.add(tower)
     db.session.commit()
 
@@ -171,22 +171,3 @@ def approve_booking(id):
     return jsonify({"message": "Booking approved"})
 
 
-@admin_bp.route('/bookings/<int:id>/reject', methods=['PUT'])
-@jwt_required()
-def reject_booking(id):
-    booking = Booking.query.get_or_404(id)
-
-    data = request.get_json()
-    reason = data.get("reason", "Declined by admin")
-
-    booking.status = "declined"
-    booking.decline_reason = reason
-
-    # ✅ IMPORTANT — Make Unit Available Again
-    unit = Unit.query.get(booking.unit_id)
-    if unit:
-        unit.status = "available"
-
-    db.session.commit()
-
-    return jsonify({"message": "Booking declined"})
