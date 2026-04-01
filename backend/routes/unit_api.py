@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.orm import joinedload
 
 from models import db, Unit, Tower, Amenity
 
@@ -20,6 +21,20 @@ def list_units():
         q = q.filter(Unit.status.ilike(status))  # case-safe
 
     units = q.order_by(Unit.id.asc()).all()
+    return jsonify([u.to_dict() for u in units]), 200
+
+@unit_bp.get("/admin/units")
+@jwt_required()
+def get_admin_units():
+
+    if not admin_required():
+        return jsonify({"error": "Admin only"}), 403
+
+    units = Unit.query.options(
+        joinedload(Unit.amenities),
+        joinedload(Unit.tower)
+    ).order_by(Unit.id.asc()).all()
+
     return jsonify([u.to_dict() for u in units]), 200
 
 

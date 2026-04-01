@@ -61,7 +61,9 @@ export class HomeComponent implements OnInit {
     const images = [
       'assets/units/flat1.jpg',
       'assets/units/flat2.jpg',
-      'assets/units/flat3.jpg'
+      'assets/units/flat3.jpg',
+      'assets/units/flat4.jpg',
+      'assets/units/flat5.jpg'
     ];
 
     return images[index % images.length];

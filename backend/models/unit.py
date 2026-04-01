@@ -34,6 +34,11 @@ class Unit(db.Model):
             "bhk": self.bhk,
             "rent": float(self.rent),
             "furnishing_type": self.furnishing_type,   # ✅ NEW
-            "amenities": [a.to_dict() for a in self.amenities],
+            "amenities": [
+            {
+            "id": a.id,
+            "name": a.name
+            } for a in self.amenities
+            ],
             "status": self.status
         }

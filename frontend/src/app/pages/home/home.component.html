@@ -48,17 +48,17 @@
       <p>🪑 {{ u.furnishing_type || 'N/A' }}</p>
 
       <p>
-      🏊 Amenities:
-      <span *ngIf="u.amenities?.length; else noAmenities">
-      <span *ngFor="let a of u.amenities; let i = index">
-      {{ a.name }}<span *ngIf="i < u.amenities.length - 1">, </span>
-      </span>
-      </span>
+🏊 Amenities:
+<span *ngIf="u.amenities?.length; else noAmenities">
+<span *ngFor="let a of u.amenities; let i = index">
+{{ a }}<span *ngIf="i < u.amenities.length - 1">, </span>
+</span>
+</span>
 
-       <ng-template #noAmenities>
-       None
-       </ng-template>
-       </p>
+<ng-template #noAmenities>
+None
+</ng-template>
+</p>
 
        <p class="mt-2 text-lg font-semibold text-gray-800">
        ₹ {{u.rent}} / month

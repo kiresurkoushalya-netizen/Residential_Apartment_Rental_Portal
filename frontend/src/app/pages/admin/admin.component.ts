@@ -230,7 +230,7 @@ export class AdminComponent implements OnInit {
       furnishing_type: this.unitForm.furnishing_type,
 
       // ✅ CRITICAL FIX
-      amenities: this.selectedAmenities
+      amenity_ids : this.selectedAmenities
     };
 
     const opts = this.authOptions();

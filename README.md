@@ -37,6 +37,7 @@ Open the bash in frontend project and open bash and run below command
 
 now UI also ready in http://localhost:4200/
 
+
 Run below command in bash for creating the all table
 
 docker exec -it apartment_backend python -c "from app import app; from extensions import db; app.app_context().push(); db.create_all(); print('✅Tables created')"
