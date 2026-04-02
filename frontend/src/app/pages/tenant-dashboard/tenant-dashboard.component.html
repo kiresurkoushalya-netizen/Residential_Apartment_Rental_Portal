@@ -27,7 +27,7 @@
         <strong>Amenities:</strong>
         <span *ngIf="unit.amenities?.length; else noAmenities">
         <span *ngFor="let a of unit.amenities; let i = index">
-        {{ a }}<span *ngIf="i < unit.amenities.length - 1">, </span>
+        {{ a.name }}<span *ngIf="i < unit.amenities.length - 1">, </span>
         </span>
         </span>
 

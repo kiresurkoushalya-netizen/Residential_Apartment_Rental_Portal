@@ -52,18 +52,25 @@ export class AdminComponent implements OnInit {
   };
 
   constructor(
-    private http: HttpClient,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
+  private http: HttpClient,
+  private router: Router,
+  private cdr: ChangeDetectorRef
+) {}
 
-  ngOnInit(): void {
-    this.loadDashboard();
-    this.loadTowers();
+ngOnInit(): void {
+  this.loadDashboard();
+  this.loadTowers();
+  this.loadUnits();
+  this.loadBookings();
+  this.getAmenities();
+
+  // Auto refresh
+  setInterval(() => {
     this.loadUnits();
-    this.loadBookings();
-    this.getAmenities();
-  }
+  }, 5000);
+}
+
+  
 
   // -------------------------
   // Helpers
@@ -159,19 +166,34 @@ export class AdminComponent implements OnInit {
   // Units
   // -------------------------
   loadUnits() {
-    const opts = this.authOptions();
-    if (!opts) return;
+  const opts = this.authOptions();
+  if (!opts) return;
 
-    this.http.get<any>(`${this.baseUrl}/admin/units`, opts).subscribe({
-      next: (res) => {
-        this.units = res?.units || [];
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.errorMsg = 'Failed to load units';
-      },
-    });
-  }
+  this.http.get<any>(`${this.baseUrl}/admin/units`, opts)
+  .subscribe({
+    next: (res) => {
+
+      console.log("🔥 Full Units Response:", res);
+
+      this.units = (res?.units || []).map((u: any) => {
+
+        console.log("🔥 Unit:", u);
+        console.log("🔥 Amenities:", u.amenities);
+
+        return {
+          ...u,
+          amenities: u.amenities || []
+        };
+      });
+
+      this.cdr.detectChanges();
+    },
+    error: (err) => {
+      console.error("❌ Units Error:", err);
+      this.errorMsg = 'Failed to load units';
+    },
+  });
+}
 
   getAmenities() {
     this.http.get<any[]>(`${this.baseUrl}/amenities`)

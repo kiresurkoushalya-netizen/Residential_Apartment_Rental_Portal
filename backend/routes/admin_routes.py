@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
-
+from sqlalchemy.orm import joinedload
 from extensions import db
 from models.unit import Unit
 from models.tower import Tower
@@ -80,20 +80,22 @@ def add_unit():
             bhk=data["bhk"],
             rent=float(data["rent"]),
             status=data.get("status", "available"),
-
-            # ✅ FIX
             furnishing_type=data.get("furnishing_type")
         )
 
-        # ✅ SAVE AMENITIES
-        if "amenities" in data:
+        db.session.add(unit)
+        db.session.flush()   # 🔥 important
+
+        amenity_ids = data.get("amenity_ids", [])
+
+        if amenity_ids:
             amenities = Amenity.query.filter(
-                Amenity.id.in_(data["amenities"])
+                Amenity.id.in_(amenity_ids)
             ).all()
 
-            unit.amenities = amenities
+            for amenity in amenities:
+                unit.amenities.append(amenity)
 
-        db.session.add(unit)
         db.session.commit()
 
         return jsonify({"message": "Unit added successfully"}), 201
@@ -102,37 +104,43 @@ def add_unit():
         return jsonify({"error": str(e)}), 500
 
 
+from sqlalchemy.orm import joinedload
+
 @admin_bp.get("/units")
 @jwt_required()
 def get_units():
     if not admin_required():
         return jsonify({"error": "Admin only"}), 403
 
-    units = Unit.query.all()
+    units = Unit.query.options(
+        joinedload(Unit.amenities),
+        joinedload(Unit.tower)
+    ).all()
 
-    result = []
+    data = []
 
     for u in units:
-        result.append({
+        amenities = [
+            {
+                "id": a.id,
+                "name": a.name
+            }
+            for a in u.amenities
+        ]
+
+        data.append({
             "id": u.id,
             "unit_no": u.unit_no,
             "tower": u.tower.name if u.tower else None,
             "floor": u.floor,
             "bhk": u.bhk,
+            "furnishing_type": u.furnishing_type,
             "rent": u.rent,
             "status": u.status,
-
-            # ✅ IMPORTANT
-            "furnishing_type": u.furnishing_type,
-
-            # ✅ IMPORTANT
-            "amenities": [
-                {"id": a.id, "name": a.name}
-                for a in u.amenities
-            ]
+            "amenities": amenities
         })
 
-    return jsonify({"units": result}), 200
+    return jsonify({"units": data}), 200
 
 
 @admin_bp.delete("/units/<int:unit_id>")

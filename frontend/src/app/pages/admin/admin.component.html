@@ -190,11 +190,11 @@
               </td>
 
               <td class="p-2">
-              <span *ngIf="u.amenities?.length; else noAmenities">
+              <ng-container *ngIf="u.amenities?.length > 0; else noAmenities">
               <span *ngFor="let a of u.amenities; let i = index">
               {{ a.name }}<span *ngIf="i < u.amenities.length - 1">, </span>
               </span>
-              </span>
+              </ng-container>
 
               <ng-template #noAmenities>
               <span class="text-gray-400">None</span>
